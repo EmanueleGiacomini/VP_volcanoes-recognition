@@ -141,6 +141,7 @@ fabric.properties
 # SonarQube Plugin
 # https://plugins.jetbrains.com/plugin/7238-sonarqube-community-plugin
 .idea/**/sonarIssues.xml
+libs/.idea/
 
 # Markdown Navigator plugin
 # https://plugins.jetbrains.com/plugin/7896-markdown-navigator-enhanced
@@ -292,3 +293,8 @@ dmypy.json
 .pytype/
 
 # End of https://www.toptal.com/developers/gitignore/api/emacs,python,pycharm
+
+dataset/
+README.html
+datasetlabels.csv
+venus_volcanoes/

@@ -6,6 +6,7 @@ previously loaded images
 
 from libs.dparser import DataParser
 from libs.improc import sliding_window
+from libs.improc import augmentImages
 import random
 import numpy as np
 import tensorflow as tf
@@ -56,7 +57,7 @@ def sample_non_volcanoes(images: [tf.Tensor], metadata: [np.ndarray], num_sample
 
 
 class DataBuilder:
-    def __init__(self, path: str, bbox_size=64, non_volcanoes_samples=int(1e4), stride=15):
+    def __init__(self, path: str, bbox_size=64, non_volcanoes_samples=int(3e3), stride=15):
         # Load data from a DataParser element
         dloader = DataParser(path)
         images_raw = dloader.getImages()

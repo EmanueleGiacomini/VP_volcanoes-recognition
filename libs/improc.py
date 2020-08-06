@@ -74,13 +74,29 @@ def convert(image: np.ndarray, label) -> tf.Tensor:
 
 
 def augment(image: np.ndarray, label: int):
-    image, label = convert(image, label)
+    #image, label = convert(image, label)
     # Apply Mirror
-    if random() > 0.5:
-        image = tf.image.flip_left_right(image)
-    if random() > 0.5:
-        image = tf.image.flip_up_down(image)
+    image = tf.image.flip_left_right(image)
+    image = tf.image.flip_up_down(image)
     # Rotate
-    if random() > 0.5:
-        image = tf.image.rot90(image)
+    image = tf.image.rot90(image)
     return image, label
+
+def augmentImage(image: tf.Tensor, label: int):
+    #image, label = convert(image, label)
+    image = tf.image.flip_left_right(image)
+    image = tf.image.flip_up_down(image)
+    image = tf.image.rot90(image)
+    return image, label
+
+def augmentImages(images: [tf.Tensor], labels: [int], labels_filter=[0]) -> ([tf.Tensor], [int]):
+    images_augmented = []
+    labels_augmented = []
+    for i, image in enumerate(images):
+        if labels[i] not in labels_filter:
+            image_augm, label_augm = augmentImage(image, labels[i])
+            images_augmented.append(image_augm)
+            labels_augmented.append(label_augm)
+    images_augmented.extend(images)
+    labels_augmented.extend(labels)
+    return images_augmented, labels_augmented

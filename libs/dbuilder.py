@@ -6,10 +6,10 @@ previously loaded images
 
 from libs.dparser import DataParser
 from libs.improc import sliding_window
-from libs.improc import augmentImages
 import random
 import numpy as np
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
 
 
 def extract_volcanoes(images: [tf.Tensor], metadata: [np.ndarray], bbox_size: (int, int)) -> ([tf.Tensor], [int]):
@@ -78,13 +78,41 @@ class DataBuilder:
         random.shuffle(c)
         self.images, self.labels = zip(*c)
 
-    def store(self, path: str):
+    def store(self, path: str, labels:['str'], train_ratio=0.7):
         """
         Stores the computed data into the following format:
         -path/labels.csv [the generic row i represent the label of i.jpg]
         -path/i.jpg      [i is a generic number between [0, no.volcanoes + no.not_volcanoes]
+        :param train_ratio:
         :param path:
         :return:
+        """
+
+        # Split train and test images
+        X_train, X_test, y_train, y_test = train_test_split(self.images, self.labels, test_size=(1. - train_ratio),
+                                                            random_state=42)
+
+        def storeImage(image: tf.Tensor, label: str, current_path: str, filename: str) -> None:
+            image_encoded = tf.cast(image, tf.uint8)
+            image_encoded = tf.expand_dims(image_encoded, -1)
+            image_encoded = tf.image.encode_jpeg(image_encoded, quality=100, format='grayscale')
+            impath = current_path + label + '/' + filename + '.jpg'
+            tf.io.write_file(impath, image_encoded)
+            return
+
+        labels_counter = [0 for _ in range(len(labels))]
+        current_path = path + 'training_data/'
+        for image, label in zip(X_train, y_train):
+            filename = labels[label] + '_image_' + str(labels_counter[label])
+            labels_counter[label] += 1
+            storeImage(image, labels[label], current_path, filename)
+
+        labels_counter = [0 for _ in range(len(labels))]
+        current_path = path + 'validation_data/'
+        for image, label in zip(X_test, y_test):
+            filename = labels[label] + '_image_' + str(labels_counter[label])
+            labels_counter[label] += 1
+            storeImage(image, labels[label], current_path, filename)
         """
         # Store images
         for i, image in enumerate(self.images):
@@ -96,16 +124,17 @@ class DataBuilder:
             for label in self.labels:
                 f.write(str(label))
                 f.write('\n')
+        """
 
 
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
+    labels = ['not_present', 'definitely',
+              'probably', 'possibly',
+              'only_pit']
     dbuilder = DataBuilder('./venus_volcanoes/package/')
-    dbuilder.store('./dataset/')
-    labels = ['Not present', 'Definitely',
-              'Probably', 'Possibly',
-              'Only a pit']
+    dbuilder.store('./dataset/', labels, train_ratio=0.7)
     fig, axs = plt.subplots(2, 10, sharex=True, sharey=True)
     for i in range(2):
         for j in range(10):

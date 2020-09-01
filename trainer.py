@@ -40,42 +40,44 @@ def train_model(model: tf.keras.Model, loader: DataLoader):
                                  callbacks=[es])
     return training_history
 
+
 def generate_multiobjective_labels(images: [tf.Tensor], labels: [int]):
     ...
 
 
-
 if __name__ == '__main__':
-    # Uncomment only for GPU-usage of TensorFlow
-    #physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    #tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-    #tf.debugging.set_log_device_placement(True)
-
+    # Setup GPU usage for TensorFlow, if available
+    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+    if len(physical_devices) > 0:
+        tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+    # tf.debugging.set_log_device_placement(True)
     tf.keras.backend.set_floatx('float64')
+    # Setup random seed
+    tf.random.set_seed(42)
+    np.random.seed(42)
 
-
-    loader = DataLoader(DATASET_PATH, train_split=0.8, callbacks={'load': load_cb})
+    loader = DataLoader(DATASET_PATH, train_split=0.7, augment=True, callbacks={'load': load_cb})
     train_set, test_set = loader.open()
     train_set = train_set.cache().batch(BATCH_SIZE).repeat()
-    test_set = test_set.cache().batch(BATCH_SIZE)
+    test_set = test_set.batch(BATCH_SIZE)
 
-    model = ConvModel()
-    #model = createConvModel2()
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
-    #model.compile(optimizer='adam', loss='kullback_leibler_divergence', metrics=['acc'])
+    #model = ConvModel()
+    model = createConvModel2()
+    #model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
+    model.compile(optimizer='adam', loss='kullback_leibler_divergence', metrics=['acc'])
 
-    class_weights = {0: 1.,
-                     1: 15.,
+    class_weights = {0: 0.3,
+                     1: 5.,
                      2: 4.,
-                     3: 1.5,
-                     4: 1.5}
+                     3: 2.,
+                     4: 2.}
 
     es = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                          patience=10,
+                                          patience=7,
                                           restore_best_weights=True,
                                           verbose=True)
     training_history = model.fit(train_set, epochs=NUM_EPOCHS, validation_data=test_set,
-                                 steps_per_epoch=10, class_weight=class_weights,
+                                 steps_per_epoch=10, #class_weight=class_weights,
                                  callbacks=[es])
 
     # Fill confusion matrix

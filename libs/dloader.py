@@ -6,6 +6,8 @@ The DataLoader class is used to load in memory, previously stored datasets gener
 from libs.improc import augmentImages
 import numpy as np
 import tensorflow as tf
+from os import listdir
+from os.path import isfile, join, isdir
 from PIL import Image
 
 LABELS_PATH = 'labels.csv'
@@ -16,8 +18,57 @@ def normalize_image(image: tf.Tensor) -> tf.Tensor:
 DT_SHUFFLE_BUF_SIZE = int(1e4)
 NUM_CLASSES = 5
 
+
+def create_datasets(images_train: [tf.Tensor], labels_train: [tf.Tensor]) -> [tf.data.Dataset]:
+    """
+    Returns a list of tf.data.Dataset . Each tf.data.Dataset is associated with only one label
+    Can use this list to further develop a balanced dataset (oversampling)
+    :param images_train:
+    :param labels_train:
+    :return:
+    """
+    # Create a raw dictionary on where to store the training elements
+    raw_dataset = {}
+    for i in range(NUM_CLASSES):
+        raw_dataset[int(i)] = list()
+    for image, label in zip(images_train, labels_train):
+        raw_dataset[label].append(image)
+
+    pass
+
+
+def datasets_from_directory(path: str, callbacks={}) -> [tf.data.Dataset]:
+    def read_folder(folder: str, label: int) -> tf.data.Dataset:
+        current_path = path + folder + '/'
+        img_path_lst = [f for f in listdir(current_path) if isfile(join(current_path, f))]
+        tf_images = []
+        for img_path in img_path_lst:
+            image = tf.keras.preprocessing.image.load_img(current_path + img_path)
+            image = tf.keras.preprocessing.image.img_to_array(image)
+            image = tf.convert_to_tensor(image, tf.float64)
+            image = tf.expand_dims(image, -1)
+            tf_images.append(image)
+        tf_labels = tf.keras.utils.to_categorical([label for _ in range(len(tf_images))], NUM_CLASSES)
+        return tf.data.Dataset.from_tensor_slices((tf_images, tf_labels))
+    dataset_lst = [0 for _ in range(NUM_CLASSES)]
+    dir_lst = [d for d in listdir(path) if isdir(join(path, d))]
+    labels = ['not_present', 'definitely',
+              'probably', 'possibly',
+              'only_pit']
+
+    for i, dir in enumerate(dir_lst):
+        if 'load' in callbacks:
+            callbacks['load'](i, len(dir_lst) - 1, 'Loading data')
+        # Magic happens here
+        dataset_lst[labels.index(dir)] = read_folder(dir, labels.index(dir)).map(lambda x, y: (normalize_image(x), y))
+    return dataset_lst
+
+
 class DataLoader:
-    def __init__(self, path: str, train_split=0.7, augment=False, callbacks={}):
+    def __init__(self, path: str, augment=False, callbacks={}):
+        train_ds_lst = datasets_from_directory(path + 'training_data/', callbacks=callbacks)
+        validation_ds_lst = datasets_from_directory(path + 'validation_data/', callbacks=callbacks)
+        """
         # Open metadata (labels) file
         with open(path + LABELS_PATH, 'r') as f:
             data = []
@@ -52,6 +103,8 @@ class DataLoader:
         labels_train = self.labels[:TRAIN_SPLIT]
         images_test = self.images[TRAIN_SPLIT:]
         labels_test = self.labels[TRAIN_SPLIT:]
+
+        dsets = create_datasets(images_train, labels_train)
         # augment training set
         if augment:
             images_train, labels_train = augmentImages(images_train, labels_train)
@@ -63,17 +116,6 @@ class DataLoader:
         test_dataset = tf.data.Dataset.from_tensor_slices((images_test, labels_test))
         self.train, self.test = train_dataset, test_dataset
         """
-        data_tf_cmpl = tf.data.Dataset.from_tensor_slices((self.images, self.labels))
-        data_tf_cmpl = data_tf_cmpl.shuffle(DT_SHUFFLE_BUF_SIZE)
-        # Split train/test sets
-        train_size = int(len(self.images) * train_split)
-        self.train_size = train_size
-        self.test_size = len(self.images) - self.train_size
-        train_dataset = data_tf_cmpl.take(train_size)
-        test_dataset = data_tf_cmpl.skip(train_size)
-        self.train, self.test = train_dataset, test_dataset
-        """
-
     def open(self):
         return self.train, self.test
 
@@ -82,8 +124,8 @@ from libs.callbacks import load_cb
 
 if __name__ == '__main__':
     loader = DataLoader('./dataset/', callbacks={'load': load_cb})
-    train_set, test_set = loader.open()
+#    train_set, test_set = loader.open()
 
-    for x, y in train_set.take(1):
-        print(x)
-        print(f'y : {y}')
+#    for x, y in train_set.take(1):
+#        print(x)
+#        print(f'y : {y}')

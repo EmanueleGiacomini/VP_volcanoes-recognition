@@ -40,7 +40,7 @@ LABELS_DECODE = [
 if __name__ == '__main__':
     tf.keras.backend.set_floatx('float64')
 
-    loader = DataLoader(DATASET_PATH, train_split=0.7, callbacks={'load': load_cb})
+    loader = DataLoader(DATASET_PATH, train_split=0.7, augment=True, callbacks={'load': load_cb})
     train_set, test_set = loader.open()
     # Plot histogram (training, validation)
     fig, axs = plt.subplots(2, 1, sharex=True)
@@ -48,19 +48,18 @@ if __name__ == '__main__':
     axs[0].set_title('Training distribution')
     plot_hist(axs[1], test_set)
     axs[1].set_title('Validation distribution')
-    plt.savefig('./images/histogram.jpg')
+    plt.savefig('./images/histogram_augm_2.png')
     # Plot samples
     plt.rcParams.update({'font.size': 12})
     fig, axs = plt.subplots(5, 5, sharex=True, sharey=True, figsize=(20,20))
     i, j = 0, 0
     for image, label in train_set.shuffle(100).take(25):
-        print(np.argmax(label))
         plot_sample(axs[i][j], image, label, 1.)
         j += 1
         if j % 5 == 0 and j != 0:
             i += 1
             j = 0
-    plt.savefig('./images/training_sample.jpg')
+    plt.savefig('./images/training_sample_augm_2.png')
     # Test samples
     fig, axs = plt.subplots(5, 5, sharex=True, sharey=True, figsize=(20, 20))
     i, j = 0, 0
@@ -70,6 +69,6 @@ if __name__ == '__main__':
         if j % 5 == 0 and j != 0:
             i += 1
             j = 0
-    plt.savefig('./images/test_sample.jpg')
+    plt.savefig('./images/test_sample.png')
 
 

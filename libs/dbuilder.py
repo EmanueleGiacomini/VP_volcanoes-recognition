@@ -30,8 +30,12 @@ def extract_volcanoes(images: [tf.Tensor], metadata: [np.ndarray], bbox_size: (i
                 continue
             x_anchor = min(max(int(meta[X_IDX]) - bbox_size_half[0], x_min), x_max - bbox_size[0])
             y_anchor = min(max(int(meta[Y_IDX]) - bbox_size_half[1], y_min), y_max - bbox_size[1])
-            data.append(image[y_anchor:y_anchor + bbox_size[1], x_anchor:x_anchor + bbox_size[0]])
-            labels.append(int(meta[0]))
+            vimage = image[y_anchor:y_anchor + bbox_size[1], x_anchor:x_anchor + bbox_size[0]]
+            if np.count_nonzero(vimage) == bbox_size[1] * bbox_size[0]:
+                data.append(vimage)
+                labels.append(int(meta[0]))
+            else:
+                print('Sgamato.')
     return data, labels
 
 

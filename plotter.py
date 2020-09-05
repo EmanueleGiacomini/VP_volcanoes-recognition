@@ -79,6 +79,21 @@ def figure_to_image(figure):
     image = tf.expand_dims(image, 0)
     return image
 
+def plot_full_volcanoes(image: np.array, metadata: [np.array],
+                        labels_color=None, bbox_size: int = 64):
+    if labels_color is None:
+        labels_color = ['dummy', 'r', 'orange', 'yellow', 'blue']
+    bbox_size_half = int(bbox_size / 2)
+    figure, ax = plt.subplots(1, 1, figsize=(15, 15))
+    ax.imshow(image, cmap='gray')
+    for meta in metadata:
+        color = labels_color[int(meta[0])]
+        ax.add_artist(plt.Rectangle((meta[1] - bbox_size_half, meta[2] - bbox_size_half),
+                                    2 * bbox_size_half, 2 * bbox_size_half, color=color,
+                                    fill=False))
+    return figure
+
+
 
 LABELS_DECODE = [
     'Not volcano',
@@ -91,7 +106,7 @@ LABELS_DECODE = [
 if __name__ == '__main__':
     tf.keras.backend.set_floatx('float64')
 
-    loader = DataLoader(DATASET_PATH, augment=True, callbacks={'load': load_cb})
+    loader = DataLoader(DATASET_PATH, augment=False, callbacks={'load': load_cb})
     train_set, test_set = loader.open()
     # Plot histogram (training, validation)
 

@@ -57,15 +57,25 @@ def oversample_minority_datasets(train_ds_lst: [tf.data.Dataset]) -> (tf.data.Da
 
     # Compute percentage of each dataset wrt the whole training set
     total_samples = 0
-    ds_percentage = []
+    ds_pdf = []
+
     for ds in train_ds_lst:
         ds_size = tf.data.experimental.cardinality(ds).numpy()
         total_samples += ds_size
-        ds_percentage.append(ds_size)
-    ds_percentage = list(map(lambda x: x / total_samples, ds_percentage))
-    sample_weights = list(map(lambda x: 1. - x, ds_percentage))
-    resampled_ds = tf.data.experimental.sample_from_datasets(train_ds_lst, sample_weights)
-    return resampled_ds, ds_percentage
+        ds_pdf.append(ds_size)
+
+    # Generate train_ds_lst where smaller datasets are able to repeat
+    """train_ds_lst = [train_ds_lst[0], train_ds_lst[1].repeat(), train_ds_lst[2].repeat(), train_ds_lst[3].repeat(),
+                    train_ds_lst[4].repeat()]"""
+
+    mean_sample_per_class = total_samples / 5
+    sample_weights = [0.5 for _ in range(5)]
+    #sample_weights = list(map(lambda x: mean_sample_per_class / x, ds_pdf))
+    #sample_weights = [float(i) / sum(sample_weights) for i in sample_weights]
+    resampled_ds = tf.data.experimental.sample_from_datasets(train_ds_lst, sample_weights).take(total_samples)
+    ds_pdf = list(map(lambda x: x / total_samples, ds_pdf))
+    print(ds_pdf)
+    return resampled_ds, ds_pdf
 
 
 def augment_minority_datasets(train_ds_lst: [tf.data.Dataset]) -> [tf.data.Dataset]:
@@ -73,19 +83,50 @@ def augment_minority_datasets(train_ds_lst: [tf.data.Dataset]) -> [tf.data.Datas
 
     for i in range(1, len(train_ds_lst)):
         # Augment dataset
-        augmented_ds_lst.append(train_ds_lst[i].concatenate(train_ds_lst[i].map(lambda x, y: (augmentImage(x), y))))
+        augmented_ds_lst.append(train_ds_lst[i].map(lambda x, y: (augmentImage(x), y)))
     return augmented_ds_lst
+
+
+def count_total_samples_debug(t_ds_lst, v_ds_lst):
+    class_bins = []
+    for ds_lst in [t_ds_lst, v_ds_lst]:
+        for i, ds in enumerate(ds_lst):
+            class_bins.extend([i for _ in range(tf.data.experimental.cardinality(ds))])
+    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+    axs.set_title('Total Samples Histogram')
+    axs.hist(class_bins, bins=[0, 1, 2, 3, 4, 5])
+    return fig
+
+
+def count_total_samples_ds_debug(ds: tf.data.Dataset):
+    class_bins = []
+    print(tf.data.experimental.cardinality(ds))
+    for _, y_true in ds:
+        class_bins.append(int(np.argmax(y_true)))
+    fig, axs = plt.subplots(1, 1, figsize=(10, 5))
+    axs.set_title('Total Samples Histogram [Balanced]')
+    axs.hist(class_bins, bins=[0, 1, 2, 3, 4, 5])
+    return fig
 
 
 class DataLoader:
     def __init__(self, path: str, augment=False, callbacks={}):
         train_ds_lst = datasets_from_directory(path + 'training_data/', callbacks=callbacks)
         validation_ds_lst = datasets_from_directory(path + 'validation_data/', callbacks=callbacks)
+
+        """fig = count_total_samples_debug(train_ds_lst, [])
+        plt.tight_layout()
+        plt.savefig('./images/histogram_training_no_oversample.png')"""
+
         if augment is True:
             # Generate new samples by augmenting the minority classes datasets
             train_ds_lst = augment_minority_datasets(train_ds_lst)
         # Generate a single training dataset with Oversampling algorithm
         training_dataset, class_percentage = oversample_minority_datasets(train_ds_lst)
+        """fig = count_total_samples_ds_debug(training_dataset)
+        plt.tight_layout()
+        plt.savefig('./images/histogram_training_oversample.png')
+        exit(0)"""
         # Generate a single validation dataset by merging the validation_ds_lst list
         validation_dataset = validation_ds_lst[0]
         for vds in validation_ds_lst[1:]:
@@ -102,7 +143,8 @@ from matplotlib import pyplot as plt
 from libs.callbacks import load_cb
 
 if __name__ == '__main__':
-    loader = DataLoader('./dataset/', augment=False, callbacks={'load': load_cb})
+    loader = DataLoader('./dataset/', augment=True, callbacks={'load': load_cb})
+
 #    train_set, test_set = loader.open()
 
 #    for x, y in train_set.take(1):

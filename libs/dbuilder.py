@@ -134,10 +134,12 @@ class DataBuilder:
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
+    np.random.seed(42)
+    tf.random.set_seed(42)
     labels = ['not_present', 'definitely',
               'probably', 'possibly',
               'only_pit']
-    dbuilder = DataBuilder('./venus_volcanoes/package/')
+    dbuilder = DataBuilder('./venus_volcanoes/package/', bbox_size=64)
     dbuilder.store('./dataset/', labels, train_ratio=0.7)
     fig, axs = plt.subplots(2, 10, sharex=True, sharey=True)
     for i in range(2):

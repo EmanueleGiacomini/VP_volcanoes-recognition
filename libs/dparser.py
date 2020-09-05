@@ -42,3 +42,27 @@ class DataParser:
 
     def getMetaData(self):
         return self.metadata
+
+from plotter import plot_full_volcanoes
+from matplotlib import pyplot as plt
+
+if __name__ == '__main__':
+    dp = DataParser('./venus_volcanoes/package/')
+    samples_ctr = 0
+    for i in range(len(dp.metadata)):
+        samples_ctr += len(dp.metadata[i])
+    print(f'Total of {samples_ctr} samples.')
+    """fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    ax.imshow(dp.images[0], cmap='gray')
+    ax.set_title('Venus Surface SAR readings')
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.savefig('./images/venus_surface_raw.png')"""
+    """figure = plot_full_volcanoes(dp.images[15], dp.metadata[15])
+    ax = figure.axes[0]
+    plt.rcParams.update({'font.size': 24})
+    ax.set_title('Venus surface image with volcanoes highlight')
+    plt.savefig('./images/venus_surface.png')
+    """
+    exit(0)

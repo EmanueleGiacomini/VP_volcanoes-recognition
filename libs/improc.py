@@ -82,12 +82,11 @@ def augment(image: np.ndarray, label: int):
     image = tf.image.rot90(image)
     return image, label
 
-def augmentImage(image: tf.Tensor, label: int):
-    #image, label = convert(image, label)
+def augmentImage(image: tf.Tensor):
     image = tf.image.flip_left_right(image)
     image = tf.image.flip_up_down(image)
     image = tf.image.rot90(image)
-    return image, label
+    return image
 
 def augmentImages(images: [tf.Tensor], labels: [int], labels_filter=[0]) -> ([tf.Tensor], [int]):
     images_augmented = []
